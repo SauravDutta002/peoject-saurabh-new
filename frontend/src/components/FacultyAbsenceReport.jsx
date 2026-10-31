@@ -11,7 +11,7 @@ export default function FacultyAbsenceReport() {
     facultyList, timetables, currentFacultyId,
     selectedDate, selectedDay, setSelectedDate, setSelectedDay,
     DAYS_OF_WEEK, PERIODS,
-    reportAbsence, setActiveTab, setCurrentRole,
+    reportAbsence, setActiveTab, currentRole,
     showToast, showConfirm
   } = useApp();
 
@@ -22,6 +22,7 @@ export default function FacultyAbsenceReport() {
   const [reason, setReason] = useState('');
   const [selectedPeriods, setSelectedPeriods] = useState([]);
   const [selectAllBusy, setSelectAllBusy] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => { if (currentFacultyId) setFacultyId(currentFacultyId); }, [currentFacultyId]);
   useEffect(() => { setDate(selectedDate); setDayOfWeek(selectedDay); }, [selectedDate, selectedDay]);
@@ -68,26 +69,27 @@ export default function FacultyAbsenceReport() {
       if (!proceed) return;
     }
 
-    reportAbsence({
+    setSubmitting(true);
+    const created = await reportAbsence({
       facultyId, date, dayOfWeek, leaveType,
       reason: reason.trim(),
       periodsToAdjust: selectedPeriods
     });
+    setSubmitting(false);
+    if (!created) return;
 
     setReason('');
+    if (currentRole !== 'hod') return;
 
     const goToHod = await showConfirm({
       title: 'Absence Reported Successfully!',
-      message: 'Your leave request has been sent to the HOD. Would you like to switch to the HOD Console to see the auto-assignment?',
+      message: 'The leave request has been recorded. Would you like to open the HOD Console to see the auto-assignment?',
       confirmLabel: 'Open HOD Console',
       cancelLabel: 'Stay Here',
       variant: 'success'
     });
 
-    if (goToHod) {
-      setCurrentRole('hod');
-      setActiveTab('hod-requests');
-    }
+    if (goToHod) setActiveTab('hod-requests');
   };
 
   const selectedFaculty = facultyList.find(f => f.id === facultyId);
@@ -119,7 +121,7 @@ export default function FacultyAbsenceReport() {
           <form onSubmit={handleSubmit} className="card-body form-body">
             <div className="form-field">
               <label className="field-label"><User size={14} /><span>Faculty Member</span></label>
-              <select value={facultyId} onChange={(e) => setFacultyId(e.target.value)} className="input-select" required>
+              <select value={facultyId} onChange={(e) => setFacultyId(e.target.value)} className="input-select" disabled={currentRole !== 'hod'} required>
                 {facultyList.map(f => (
                   <option key={f.id} value={f.id}>{f.name} — {f.designation}</option>
                 ))}
@@ -156,8 +158,8 @@ export default function FacultyAbsenceReport() {
               <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Attending academic conference, unwell, personal emergency..." rows={3} className="input-textarea" required />
             </div>
 
-            <button type="submit" className="btn btn-primary w-full justify-center py-2.5">
-              <Send size={15} /><span>Submit Absence to HOD</span>
+            <button type="submit" className="btn btn-primary w-full justify-center py-2.5" disabled={submitting}>
+              <Send size={15} /><span>{submitting ? 'Submitting...' : 'Submit Absence to HOD'}</span>
             </button>
           </form>
         </div>

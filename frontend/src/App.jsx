@@ -11,19 +11,58 @@ import TimetableEditor from './components/TimetableEditor';
 import PrintSlipModal from './components/PrintSlipModal';
 import NotificationToast from './components/NotificationToast';
 import ConfirmModal from './components/ConfirmModal';
+import LoginPage from './components/LoginPage';
+import { AlertCircle, Loader2, RotateCw } from 'lucide-react';
 import './App.css';
+
+function LoadingScreen() {
+  return (
+    <div className="auth-screen" role="status">
+      <div className="status-message">
+        <Loader2 size={32} className="status-spinner" />
+        <p>Loading your portal...</p>
+      </div>
+    </div>
+  );
+}
+
+function LoadErrorScreen() {
+  const { loadError, retryLoad } = useApp();
+  return (
+    <div className="auth-screen" role="alert">
+      <div className="status-message">
+        <AlertCircle size={32} className="status-error-icon" />
+        <h1 className="auth-title">Could not load the portal</h1>
+        <p>{loadError}</p>
+        <button onClick={retryLoad} className="btn btn-primary">
+          <RotateCw size={15} />
+          <span>Try Again</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AppGate() {
+  const { authStatus } = useApp();
+  if (authStatus === 'checking') return <LoadingScreen />;
+  if (authStatus === 'anonymous') return <LoginPage />;
+  if (authStatus === 'error') return <LoadErrorScreen />;
+  return <MainApp />;
+}
 
 function MainApp() {
   const { activeTab, confirmState, handleConfirm, handleCancelConfirm } = useApp();
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [tabsOpen, setTabsOpen] = useState(false);
 
   return (
     <div className="app-layout">
       {/* Top Header Navbar */}
-      <Navbar />
+      <Navbar tabsOpen={tabsOpen} onToggleTabs={() => setTabsOpen(open => !open)} />
 
       {/* Navigation Tab Bar */}
-      <NavigationTabs />
+      <NavigationTabs open={tabsOpen} onNavigate={() => setTabsOpen(false)} />
 
       {/* Main Tab Content */}
       <main className="main-content-container">
@@ -52,9 +91,6 @@ function MainApp() {
         <PrintSlipModal onClose={() => setShowPrintModal(false)} />
       )}
 
-      {/* Toast Notification Stack */}
-      <NotificationToast />
-
       {/* Custom Confirmation Modal */}
       <ConfirmModal
         isOpen={confirmState.isOpen}
@@ -82,7 +118,8 @@ function MainApp() {
 export default function App() {
   return (
     <AppProvider>
-      <MainApp />
+      <AppGate />
+      <NotificationToast />
     </AppProvider>
   );
 }

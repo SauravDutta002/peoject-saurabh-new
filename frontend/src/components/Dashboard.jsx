@@ -26,10 +26,12 @@ export default function Dashboard({ onOpenPrintModal }) {
     selectedDate,
     selectedDay,
     setActiveTab,
-    setCurrentRole,
+    currentRole,
+    demoMode,
     PERIODS,
     reportAbsence
   } = useApp();
+  const isHod = currentRole === 'hod';
 
   // Filter absences and adjustments for the selected date
   const todaysAbsences = absences.filter(a => a.date === selectedDate);
@@ -37,8 +39,8 @@ export default function Dashboard({ onOpenPrintModal }) {
   const todaysAdjustments = adjustments.filter(adj => adj.date === selectedDate);
 
   // Quick test absence generator
-  const triggerDemoAbsence = () => {
-    reportAbsence({
+  const triggerDemoAbsence = async () => {
+    const created = await reportAbsence({
       facultyId: 'f5', // Dr. Vikram Singh
       date: selectedDate,
       dayOfWeek: selectedDay,
@@ -46,7 +48,7 @@ export default function Dashboard({ onOpenPrintModal }) {
       leaveType: 'Medical Leave',
       periodsToAdjust: [6, 7, 8] // his regular classes
     });
-    setActiveTab('hod-requests');
+    if (created) setActiveTab('hod-requests');
   };
 
   // Get current date formatted
@@ -79,22 +81,21 @@ export default function Dashboard({ onOpenPrintModal }) {
           <ArrowRight size={18} className="action-arrow" />
         </button>
 
-        <button
-          onClick={() => {
-            setCurrentRole('hod');
-            setActiveTab('hod-requests');
-          }}
-          className="quick-action-card"
-        >
-          <div className="action-icon-bg">
-            <ShieldAlert size={24} />
-          </div>
-          <div className="action-content">
-            <div className="action-title">HOD Console</div>
-            <div className="action-desc">Review pending requests</div>
-          </div>
-          <ArrowRight size={18} className="action-arrow" />
-        </button>
+        {isHod && (
+          <button
+            onClick={() => setActiveTab('hod-requests')}
+            className="quick-action-card"
+          >
+            <div className="action-icon-bg">
+              <ShieldAlert size={24} />
+            </div>
+            <div className="action-content">
+              <div className="action-title">HOD Console</div>
+              <div className="action-desc">Review pending requests</div>
+            </div>
+            <ArrowRight size={18} className="action-arrow" />
+          </button>
+        )}
 
         <button
           onClick={() => setActiveTab('master-timetable')}
@@ -126,7 +127,7 @@ export default function Dashboard({ onOpenPrintModal }) {
       </div>
 
       {/* Pending HOD Alert Banner */}
-      {pendingRequests.length > 0 && (
+      {isHod && pendingRequests.length > 0 && (
         <div className="alert-banner">
           <div className="alert-banner-left">
             <div className="alert-icon-wrap">
@@ -142,10 +143,7 @@ export default function Dashboard({ onOpenPrintModal }) {
             </div>
           </div>
           <button
-            onClick={() => {
-              setCurrentRole('hod');
-              setActiveTab('hod-requests');
-            }}
+            onClick={() => setActiveTab('hod-requests')}
             className="alert-banner-btn"
           >
             <span>Open HOD Console</span>
@@ -246,13 +244,15 @@ export default function Dashboard({ onOpenPrintModal }) {
                   >
                     Report Teacher Absence
                   </button>
-                  <button
-                    onClick={triggerDemoAbsence}
-                    className="btn btn-primary btn-sm"
-                  >
-                    <Sparkles size={14} />
-                    <span>Simulate Test Absence</span>
-                  </button>
+                  {demoMode && isHod && (
+                    <button
+                      onClick={triggerDemoAbsence}
+                      className="btn btn-primary btn-sm"
+                    >
+                      <Sparkles size={14} />
+                      <span>Simulate Test Absence</span>
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -378,16 +378,15 @@ export default function Dashboard({ onOpenPrintModal }) {
                 <CalendarX size={15} />
                 <span>Report Teacher Absence Form</span>
               </button>
-              <button
-                onClick={() => {
-                  setCurrentRole('hod');
-                  setActiveTab('hod-requests');
-                }}
-                className="btn btn-outline w-full justify-start text-sm"
-              >
-                <ShieldAlert size={15} />
-                <span>HOD Adjustment Review Console</span>
-              </button>
+              {isHod && (
+                <button
+                  onClick={() => setActiveTab('hod-requests')}
+                  className="btn btn-outline w-full justify-start text-sm"
+                >
+                  <ShieldAlert size={15} />
+                  <span>HOD Adjustment Review Console</span>
+                </button>
+              )}
               <button
                 onClick={() => setActiveTab('master-timetable')}
                 className="btn btn-outline w-full justify-start text-sm"

@@ -47,7 +47,7 @@ export function isFacultyFree(
       abs.facultyId === facultyId &&
       abs.date === date &&
       abs.status !== 'Rejected' &&
-      (abs.periodsToAdjust ? abs.periodsToAdjust.includes(Number(periodId)) : true)
+      (abs.periodsToAdjust?.length ? abs.periodsToAdjust.includes(Number(periodId)) : true)
   );
   if (isAbsent) return false;
 

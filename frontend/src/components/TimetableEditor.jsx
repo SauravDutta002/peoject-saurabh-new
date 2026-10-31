@@ -15,12 +15,14 @@ import {
 export default function TimetableEditor() {
   const {
     facultyList,
-    setFacultyList,
     timetables,
     updateTimetableCell,
+    addFaculty,
+    removeFaculty,
+    user,
+    showConfirm,
     DAYS_OF_WEEK,
-    PERIODS,
-    showToast
+    PERIODS
   } = useApp();
 
   const [selectedFacultyId, setSelectedFacultyId] = useState(facultyList[0]?.id || 'f1');
@@ -37,6 +39,9 @@ export default function TimetableEditor() {
   const [newFacultyName, setNewFacultyName] = useState('');
   const [newFacultyDesignation, setNewFacultyDesignation] = useState('Assistant Professor');
   const [newFacultyDept, setNewFacultyDept] = useState('Computer Science');
+  const [newFacultyEmail, setNewFacultyEmail] = useState('');
+  const [newFacultyPassword, setNewFacultyPassword] = useState('');
+  const [addingFaculty, setAddingFaculty] = useState(false);
 
   const selectedFaculty = facultyList.find(f => f.id === selectedFacultyId) || facultyList[0];
   const facultySchedule = timetables[selectedFacultyId]?.[selectedDay] || {};
@@ -55,42 +60,60 @@ export default function TimetableEditor() {
     setEditingPeriod(periodId);
   };
 
-  const handleSavePeriod = (periodId) => {
-    if (!subject.trim()) {
-      // Clear period to Free
-      updateTimetableCell(selectedFacultyId, selectedDay, periodId, null);
-    } else {
-      updateTimetableCell(selectedFacultyId, selectedDay, periodId, {
-        subject: subject.trim(),
-        classGroup: classGroup.trim() || 'General',
-        room: room.trim() || 'Room 101'
-      });
-    }
-    setEditingPeriod(null);
+  const handleSavePeriod = async (periodId) => {
+    const classData = subject.trim()
+      ? {
+          subject: subject.trim(),
+          classGroup: classGroup.trim() || 'General',
+          room: room.trim() || 'Room 101'
+        }
+      : null;
+    const saved = await updateTimetableCell(selectedFacultyId, selectedDay, periodId, classData);
+    if (saved) setEditingPeriod(null);
   };
 
-  const handleSetFree = (periodId) => {
-    updateTimetableCell(selectedFacultyId, selectedDay, periodId, null);
-    setEditingPeriod(null);
+  const handleSetFree = async (periodId) => {
+    const saved = await updateTimetableCell(selectedFacultyId, selectedDay, periodId, null);
+    if (saved) setEditingPeriod(null);
   };
 
-  const handleAddFaculty = (e) => {
+  const handleAddFaculty = async (e) => {
     e.preventDefault();
     if (!newFacultyName.trim()) return;
 
-    const newId = `f_${Date.now()}`;
-    const newFaculty = {
-      id: newId,
+    setAddingFaculty(true);
+    const created = await addFaculty({
       name: newFacultyName.trim(),
       designation: newFacultyDesignation,
-      department: newFacultyDept
-    };
+      department: newFacultyDept,
+      email: newFacultyEmail.trim(),
+      password: newFacultyPassword
+    });
+    setAddingFaculty(false);
+    if (!created) return;
 
-    setFacultyList(prev => [...prev, newFaculty]);
-    setSelectedFacultyId(newId);
+    setSelectedFacultyId(created.id);
     setShowAddFaculty(false);
     setNewFacultyName('');
-    showToast(`Added ${newFaculty.name} to faculty roster!`, 'success');
+    setNewFacultyEmail('');
+    setNewFacultyPassword('');
+  };
+
+  const handleRemoveFaculty = async () => {
+    const confirmed = await showConfirm({
+      title: `Remove ${selectedFaculty.name}?`,
+      message: 'This deletes their account and timetable. Teachers with absence or adjustment records cannot be removed.',
+      confirmLabel: 'Remove Teacher',
+      cancelLabel: 'Keep',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
+
+    const removed = await removeFaculty(selectedFaculty.id);
+    if (removed) {
+      setSelectedFacultyId(user.id);
+      setEditingPeriod(null);
+    }
   };
 
   return (
@@ -107,13 +130,24 @@ export default function TimetableEditor() {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddFaculty(true)}
-          className="btn btn-primary text-xs py-2 px-3 flex items-center gap-1.5"
-        >
-          <Plus size={15} />
-          <span>Add New Teacher</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {selectedFaculty && selectedFaculty.id !== user.id && (
+            <button
+              onClick={handleRemoveFaculty}
+              className="btn btn-outline text-rose-600 text-xs py-2 px-3 flex items-center gap-1.5"
+            >
+              <Trash2 size={15} />
+              <span>Remove Teacher</span>
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddFaculty(true)}
+            className="btn btn-primary text-xs py-2 px-3 flex items-center gap-1.5"
+          >
+            <Plus size={15} />
+            <span>Add New Teacher</span>
+          </button>
+        </div>
       </div>
 
       {/* Selector Controls */}
@@ -306,6 +340,33 @@ export default function TimetableEditor() {
               </div>
 
               <div>
+                <label className="field-label">Login Email</label>
+                <input
+                  type="email"
+                  placeholder="e.g. sunita.mehra@college.edu"
+                  autoComplete="off"
+                  value={newFacultyEmail}
+                  onChange={(e) => setNewFacultyEmail(e.target.value)}
+                  className="input-text"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="field-label">Temporary Password</label>
+                <input
+                  type="password"
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                  minLength={8}
+                  value={newFacultyPassword}
+                  onChange={(e) => setNewFacultyPassword(e.target.value)}
+                  className="input-text"
+                  required
+                />
+              </div>
+
+              <div>
                 <label className="field-label">Designation</label>
                 <select
                   value={newFacultyDesignation}
@@ -341,8 +402,9 @@ export default function TimetableEditor() {
                 <button
                   type="submit"
                   className="btn btn-primary btn-sm"
+                  disabled={addingFaculty}
                 >
-                  Add Teacher
+                  {addingFaculty ? 'Adding...' : 'Add Teacher'}
                 </button>
               </div>
             </form>

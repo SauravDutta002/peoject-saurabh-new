@@ -9,7 +9,7 @@ import {
   Sliders
 } from 'lucide-react';
 
-export default function NavigationTabs() {
+export default function NavigationTabs({ open, onNavigate }) {
   const { activeTab, setActiveTab, absences, currentRole } = useApp();
 
   const pendingCount = absences.filter(a => a.status === 'Pending').length;
@@ -34,7 +34,8 @@ export default function NavigationTabs() {
       label: 'HOD Adjustment Console',
       icon: Workflow,
       badge: pendingCount > 0 ? pendingCount : null,
-      highlight: currentRole === 'hod' && pendingCount > 0
+      highlight: currentRole === 'hod' && pendingCount > 0,
+      hodOnly: true
     },
     {
       id: 'master-timetable',
@@ -55,12 +56,13 @@ export default function NavigationTabs() {
       label: 'Timetable Manager',
       icon: Sliders,
       badge: null,
-      highlight: false
+      highlight: false,
+      hodOnly: true
     }
-  ];
+  ].filter(tab => currentRole === 'hod' || !tab.hodOnly);
 
   return (
-    <nav className="tabs-nav-bar">
+    <nav className={`tabs-nav-bar${open ? ' tabs-open' : ''}`}>
       <div className="tabs-container">
         {tabs.map(tab => {
           const Icon = tab.icon;
@@ -68,7 +70,10 @@ export default function NavigationTabs() {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                onNavigate();
+              }}
               className={[
                 'tab-btn',
                 isActive     ? 'active'        : '',

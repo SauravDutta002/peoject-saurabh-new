@@ -15,6 +15,7 @@ export default function MyAdjustmentsView() {
     facultyList,
     currentFacultyId,
     setCurrentFacultyId,
+    currentRole,
     timetables,
     PERIODS,
     selectedDay,
@@ -55,22 +56,24 @@ export default function MyAdjustmentsView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Switch Teacher:
-          </label>
-          <select
-            value={currentFaculty.id}
-            onChange={(e) => setCurrentFacultyId(e.target.value)}
-            className="input-select text-sm py-1.5"
-          >
-            {facultyList.map(f => (
-              <option key={f.id} value={f.id}>
-                {f.name} ({f.designation})
-              </option>
-            ))}
-          </select>
-        </div>
+        {currentRole === 'hod' && (
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              Switch Teacher:
+            </label>
+            <select
+              value={currentFaculty.id}
+              onChange={(e) => setCurrentFacultyId(e.target.value)}
+              className="input-select text-sm py-1.5"
+            >
+              {facultyList.map(f => (
+                <option key={f.id} value={f.id}>
+                  {f.name} ({f.designation})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Absent Notice Banner if faculty is on leave */}
