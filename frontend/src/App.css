@@ -3106,3 +3106,17 @@ button.user-profile-section {
     position: static;
   }
 }
+/* ==============================================================
+   DASHBOARD & HOD CONSOLE POLISH
+   ============================================================== */
+.shortcuts-card {
+  padding: 1.25rem;
+}
+
+.request-card-header:last-child {
+  border-bottom: none;
+}
+
+.request-toggle-btn {
+  white-space: nowrap;
+}

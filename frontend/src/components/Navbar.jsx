@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../api/client';
+import { getInitials } from '../utils/names';
 import ChangePasswordModal from './ChangePasswordModal';
 import {
   Menu,
@@ -247,7 +248,7 @@ export default function Navbar({ tabsOpen, onToggleTabs }) {
               aria-expanded={openPanel === 'profile'}
             >
               <div className="user-avatar">
-                {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                {getInitials(user.name)}
               </div>
               <div className="user-info">
                 <div className="user-name">{user.name}</div>

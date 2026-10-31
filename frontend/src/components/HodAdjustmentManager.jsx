@@ -17,6 +17,8 @@ import {
   ArrowRight,
   Filter,
   Check,
+  ChevronDown,
+  ChevronUp,
   RotateCcw,
   Plus
 } from 'lucide-react';
@@ -39,6 +41,7 @@ export default function HodAdjustmentManager({ onOpenPrintModal }) {
   // Track selected substitutes for pending requests: { [absenceId]: { [periodId]: substituteFacultyId } }
   const [stagedAssignments, setStagedAssignments] = useState({});
   const [adminNotes, setAdminNotes] = useState({});
+  const [expandedRequests, setExpandedRequests] = useState({});
   const [showDirectModal, setShowDirectModal] = useState(false);
 
   // Filter requests
@@ -112,17 +115,24 @@ export default function HodAdjustmentManager({ onOpenPrintModal }) {
     // Validate if any period is unassigned
     const periodsToAdjust = absence.periodsToAdjust || [];
     const missing = periodsToAdjust.filter(p => !currentAssignments[p]);
+    const assignmentSummary = periodsToAdjust
+      .filter(p => currentAssignments[p])
+      .map(p => `Lecture ${p}: ${facultyList.find(f => f.id === currentAssignments[p])?.name}`)
+      .join(', ');
+    const summaryParts = [
+      `Approve ${absence.facultyName}'s absence on ${absence.date}?`,
+      assignmentSummary && `Substitutes: ${assignmentSummary}.`,
+      missing.length > 0 && `No substitute for lecture(s) ${missing.join(', ')}.`
+    ];
 
-    if (missing.length > 0) {
-      const proceed = await showConfirm({
-        title: 'Confirm Approval',
-        message: `Lecture period(s) ${missing.join(', ')} do not have an assigned substitute teacher. Approve anyway?`,
-        confirmLabel: 'Approve',
-        cancelLabel: 'Cancel',
-        variant: 'warning'
-      });
-      if (!proceed) return;
-    }
+    const proceed = await showConfirm({
+      title: 'Confirm Approval',
+      message: summaryParts.filter(Boolean).join(' '),
+      confirmLabel: 'Approve',
+      cancelLabel: 'Cancel',
+      variant: missing.length > 0 ? 'warning' : 'success'
+    });
+    if (!proceed) return;
 
     // Format assignments structure for approveAdjustments
     const formatted = {};
@@ -192,8 +202,9 @@ export default function HodAdjustmentManager({ onOpenPrintModal }) {
             </p>
           </div>
         ) : (
-          displayedAbsences.map(absence => {
+          displayedAbsences.map((absence, index) => {
             const isPending = absence.status === 'Pending';
+            const isExpanded = expandedRequests[absence.id] ?? index === 0;
             const stagedMap = stagedAssignments[absence.id] || getStagedForAbsence(absence);
             const teacherSchedule = timetables[absence.facultyId]?.[absence.dayOfWeek] || {};
             const periods = absence.periodsToAdjust || [];
@@ -238,8 +249,8 @@ export default function HodAdjustmentManager({ onOpenPrintModal }) {
                       </div>
                     </div>
 
-                    {isPending && (
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      {isPending && isExpanded && (
                         <button
                           type="button"
                           onClick={() => handleAutoAssign(absence)}
@@ -249,12 +260,26 @@ export default function HodAdjustmentManager({ onOpenPrintModal }) {
                           <Sparkles size={14} className="text-indigo-600" />
                           <span>Smart Auto-Match Free Teachers</span>
                         </button>
-                      </div>
-                    )}
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedRequests(prev => ({ ...prev, [absence.id]: !isExpanded }))}
+                        className="btn btn-outline btn-sm request-toggle-btn"
+                        aria-expanded={isExpanded}
+                      >
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        <span>
+                          {isExpanded
+                            ? 'Hide Details'
+                            : `View ${periods.length} Lecture${periods.length !== 1 ? 's' : ''}`}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Impacted Lectures Grid */}
+                {isExpanded && (
                 <div className="request-card-body">
                   <div className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-3 flex items-center justify-between">
                     <span>
@@ -429,6 +454,7 @@ export default function HodAdjustmentManager({ onOpenPrintModal }) {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             );
           })

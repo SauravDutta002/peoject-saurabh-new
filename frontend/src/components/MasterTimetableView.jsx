@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { getInitials } from '../utils/names';
 import {
   CalendarDays,
   Printer,
@@ -195,7 +196,7 @@ export default function MasterTimetableView({ onOpenPrintModal }) {
                     <td className="sticky-col faculty-cell-premium">
                       <div className="faculty-name-wrapper">
                         <div className="faculty-avatar">
-                          {faculty.name.charAt(0).toUpperCase()}
+                          {getInitials(faculty.name)}
                         </div>
                         <div>
                           <div className="faculty-name">{faculty.name}</div>
